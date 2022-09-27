@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: presidio
+  labels:
+    run: presidio
+spec:
+  ports:
+    - name: webport
+      port: 5089
+      targetPort: 5089
+  selector:
+    run: presidio
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: presidio
+  name: presidio
+spec:
+  selector:
+    matchLabels:
+      run: presidio
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/02-config.yaml") . | sha256sum }}      
+        configHash: ""
+        {{ if .Values.pod.annotations }}
+        {{- .Values.pod.annotations | toYaml  | nindent 8}} 
+        {{ end }}        
+      labels:
+        run: presidio
+    spec:
+      serviceAccountName: {{ .Values.serviceaccount.name | default "default" }}
+      automountServiceAccountToken: true
+      containers:
+      - image: {{ .Values.image.repository }}/presidio:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: presidio
+        ports:
+        - containerPort: 5089
+          protocol: TCP
+        resources:
+          limits:
+            memory: 4Gi
+          requests:
+            memory: 500Mi
+        envFrom:
+        - configMapRef:
+            name: default-odas-config
+        - configMapRef:
+            name: odas-config
+        env:
+        - name: RESTART_VERSION_0
+          value: "1"
+        - name: WATCHER_PREFIX
+          value: "presidio"
+        volumeMounts:
+        - mountPath: /etc/secrets
+          name: secrets
+          readOnly: true
+        - mountPath: /var/lib/okera
+          name: okera-lib
+        - mountPath: /var/log/okera
+          name: okera-log
+{{ if .Values.extraVolumeMounts }}
+{{- .Values.extraVolumeMounts | toYaml  | nindent 8}} 
+{{ end }}          
+      volumes:
+      - name: secrets
+        secret:
+          defaultMode: 420
+          secretName: secrets
+      - name: okera-lib
+        hostPath:
+          path: /var/lib/okera
+          type: DirectoryOrCreate
+      - name: okera-log
+        hostPath:
+          path: /var/log/okera
+          type: DirectoryOrCreate
+{{ if .Values.extraVolumes }}
+{{- .Values.extraVolumes | toYaml  | nindent 6}} 
+{{ end }}          
+      terminationGracePeriodSeconds: 5
+{{- if .Values.nodeSelector }}
+      nodeSelector: {{- .Values.nodeSelector | toYaml | nindent 8 }}
+{{- end }}

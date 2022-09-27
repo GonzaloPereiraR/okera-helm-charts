@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-maker
+  labels:
+    run: cache-maker
+spec:
+  selector:
+    matchLabels:
+      run: cache-maker
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/02-config.yaml") . | sha256sum }}      
+        configHash: ""
+        {{ if .Values.pod.annotations }}
+        {{- .Values.pod.annotations | toYaml  | nindent 8}} 
+        {{ end }}
+      labels:
+        run: cache-maker
+    spec:
+      serviceAccountName: {{ .Values.serviceaccount.name | default "default" }}
+      automountServiceAccountToken: true
+      containers:
+      - image: {{ .Values.image.repository }}/cdas:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command:
+        - /bin/bash
+        - -c
+        - |
+          python3 -u /opt/maintain-cache.py $CACHE_QUERIES 9
+        name: cache-maker
+        envFrom:
+        - configMapRef:
+            name: default-odas-config
+        - configMapRef:
+            name: odas-config
+        env:
+        - name: RESTART_VERSION_0
+          value: "1"
+        - name: WATCHER_PREFIX
+          value: "cache-maker"
+        volumeMounts:
+        - mountPath: /etc/secrets
+          name: secrets
+          readOnly: true
+        - mountPath: /var/lib/okera
+          name: okera-lib
+        - mountPath: /var/log/okera
+          name: okera-log
+{{ if .Values.extraVolumeMounts }}
+{{- .Values.extraVolumeMounts | toYaml  | nindent 8}} 
+{{ end }}          
+      volumes:
+      - name: secrets
+        secret:
+          defaultMode: 420
+          secretName: secrets
+      - name: okera-lib
+        hostPath:
+          path: /var/lib/okera
+          type: DirectoryOrCreate
+      - name: okera-log
+        hostPath:
+          path: /var/log/okera
+          type: DirectoryOrCreate
+{{ if .Values.extraVolumes }}
+{{- .Values.extraVolumes | toYaml  | nindent 6}} 
+{{ end }}          
+      securityContext:
+        fsGroup: 1000
+{{- if .Values.nodeSelector }}
+      nodeSelector: {{- .Values.nodeSelector | toYaml | nindent 8 }}
+{{- end }}        

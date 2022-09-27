@@ -1,0 +1,195 @@
+## Values.yaml for Okera helm charts
+
+## Okera docker image settings
+image:
+  repository: quay.io/okera
+  pullPolicy: IfNotPresent
+  tag: "2.11.0"
+
+## Okera common configurations
+common:
+  configs:
+    CLUSTER_NAME: "Demo Insecure Cluster"
+    CLUSTER_LABEL: "Example Cluster"
+    CATALOG_ADMINS: "admin"
+#    ENABLE_USERS_FILE: "true"
+#    USERS_FILE_LDAP: /etc/secrets/userldap.json
+#    SYSTEM_TOKEN: /etc/secrets/token.jwt
+  secret_strings:
+#    token.jwt: <jwt-token>
+  secret_files:
+#    userldap.json: files/users.json
+
+
+## SSL configurations
+ssl:
+  enabled: false
+  configs:
+  secret_files:
+#    SSL_CERTIFICATE_FILE: files/ssl.crt
+#    SSL_KEY_FILE: files/ssl.key
+
+## JWT configurations
+jwt:
+  enabled: false
+  configs:
+#    JWT_ALGORITHM: RSA512
+  secret_files:
+#    JWT_PUBLIC_KEY: files/jwt_pub_key.pem
+#    JWT_PRIVATE_KEY: files/jwt_priv_key.pem
+
+## LDAP configurations
+ldap:
+  enabled: false
+  configs:
+#    GROUP_RESOLVER_LDAP_HOST: "ldaps://<Okta LDAP host, e.g. company.ldap.okta.com>"
+#    GROUP_RESOLVER_LDAP_PORT: "636"
+#    GROUP_RESOLVER_LDAP_USE_SSL: "true"
+#    GROUP_RESOLVER_LDAP_BASE_DN: "<Okta Base DN, e.g. dc=company, dc=okta, dc=com>"
+#    GROUP_RESOLVER_LDAP_USER_SEARCH_FILTER: "(&amp;(objectClass=person)(uid={0}@company.com))"
+#    GROUP_RESOLVER_LDAP_GROUP_SEARCH_FILTER: "(objectClass=groupofUniqueNames)"
+#    GROUP_RESOLVER_LDAP_MEMBER_FIELD_NAME: "uniqueMember"
+#    GROUP_RESOLVER_LDAP_USER: "<Okta service user DN, e.g. uid=okera_okta@company.com,dc=company,dc=okta,dc=com>"
+  secret_strings:
+#    GROUP_RESOLVER_LDAP_PASSWORD: <group-resolver-ldap-password>
+#    LDAP_USER_QUERY_SERVICE_PASSWORD: <ldap-user-servic-query-password>
+  secret_files:
+#    GROUP_RESOLVER_LDAP_PASSWORD: files/group_resolver_ldap_password
+#    LDAP_USER_QUERY_SERVICE_PASSWORD: files/ldap_user_query_service_password
+
+## Database configurations
+## Catalog DB engine types:  mysql / postgres
+db:
+  enabled: false
+  configs:
+#    CATALOG_DB_ENGINE: mysql
+#    CATALOG_DB_URL: db.example.example:3306
+#    CATALOG_DB_USER: okera
+  secret_strings:
+#    CATALOG_DB_PASSWORD: <catalog-db-password>
+  secret_files:
+#    CATALOG_DB_PASSWORD: files/catalog_db_password
+
+## Kubernetes service configurations
+## Service types: LoadBalancer/NodePort
+service:
+  type: NodePort
+  annotations:
+#    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+#    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+
+serviceaccount:
+  name: default
+
+nodeSelector:
+#  host: okera
+
+extraVolumeMounts:
+# - name: extra-volume-1
+#   mountPath: /var/lib/extravolumes/1
+
+extraVolumes:
+#  - name: extra-volume-1 
+#    emptyDir: {}
+
+pod:
+  annotations:
+#    key: value
+## Values.yaml for Okera helm charts
+
+## Okera docker image settings
+image:
+  repository: quay.io/okera
+  pullPolicy: Always
+  tag: "nong-latest"
+
+## Okera common configurations
+common:
+  configs:
+    CLUSTER_NAME: "Default Local Dev Cluster"
+    CLUSTER_LABEL: "Dev Cluster"
+    CATALOG_ADMINS: "admin"
+#    ENABLE_USERS_FILE: "true"
+#    USERS_FILE_LDAP: /etc/secrets/userldap.json
+#    SYSTEM_TOKEN: /etc/secrets/token.jwt
+  secret_strings:
+#    token.jwt: <jwt-token>
+  secret_files:
+#    userldap.json: files/users.json
+
+
+## SSL configurations
+ssl:
+  enabled: false
+  configs:
+  secret_files:
+#    SSL_CERTIFICATE_FILE: files/ssl.crt
+#    SSL_KEY_FILE: files/ssl.key
+
+## JWT configurations
+jwt:
+  enabled: false
+  configs:
+#    JWT_ALGORITHM: RSA512
+  secret_files:
+#    JWT_PUBLIC_KEY: files/jwt_pub_key.pem
+#    JWT_PRIVATE_KEY: files/jwt_priv_key.pem
+
+## LDAP configurations
+ldap:
+  enabled: false
+  configs:
+#    GROUP_RESOLVER_LDAP_HOST: "ldaps://<Okta LDAP host, e.g. company.ldap.okta.com>"
+#    GROUP_RESOLVER_LDAP_PORT: "636"
+#    GROUP_RESOLVER_LDAP_USE_SSL: "true"
+#    GROUP_RESOLVER_LDAP_BASE_DN: "<Okta Base DN, e.g. dc=company, dc=okta, dc=com>"
+#    GROUP_RESOLVER_LDAP_USER_SEARCH_FILTER: "(&amp;(objectClass=person)(uid={0}@company.com))"
+#    GROUP_RESOLVER_LDAP_GROUP_SEARCH_FILTER: "(objectClass=groupofUniqueNames)"
+#    GROUP_RESOLVER_LDAP_MEMBER_FIELD_NAME: "uniqueMember"
+#    GROUP_RESOLVER_LDAP_USER: "<Okta service user DN, e.g. uid=okera_okta@company.com,dc=company,dc=okta,dc=com>"
+  secret_strings:
+#    GROUP_RESOLVER_LDAP_PASSWORD: <group-resolver-ldap-password>
+#    LDAP_USER_QUERY_SERVICE_PASSWORD: <ldap-user-servic-query-password>
+  secret_files:
+#    GROUP_RESOLVER_LDAP_PASSWORD: files/group_resolver_ldap_password
+#    LDAP_USER_QUERY_SERVICE_PASSWORD: files/ldap_user_query_service_password
+
+## Database configurations
+## Catalog DB engine types:  mysql / postgres
+db:
+  enabled: true
+  configs:
+    CATALOG_DB_ENGINE: postgres
+    CATALOG_DB_URL: postgres-local-dev:5432
+    CATALOG_DB_USER: cerebro
+  secret_strings:
+    CATALOG_DB_PASSWORD: cerebro1
+  secret_files:
+#    CATALOG_DB_PASSWORD: files/catalog_db_password
+
+## Kubernetes service configurations
+## Service types: LoadBalancer/NodePort
+service:
+  type: NodePort
+  annotations:
+#    service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
+#    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+
+serviceaccount:
+  name: default
+
+nodeSelector:
+#  host: okera
+
+extraVolumeMounts:
+# - name: extra-volume-1
+#   mountPath: /var/lib/extravolumes/1
+
+extraVolumes:
+#  - name: extra-volume-1
+#    emptyDir: {}
+
+pod:
+  annotations:
+#    key: value
+

@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cerebro-planner
+  labels:
+    run: cerebro-planner
+{{ if .Values.service.annotations }}
+  annotations:
+{{- .Values.service.annotations | toYaml  | nindent 4}} 
+{{ end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    # Note: services rely on the name of this port. Do not change it without changing
+    # all references to it.
+    - name: planner
+      port: 12050
+      protocol: "TCP"
+      targetPort: 12050
+    - name: impala-proxy
+      port: 12052
+      protocol: "TCP"
+      targetPort: 12052
+    - name: hive-proxy
+      port: 12053
+      protocol: "TCP"
+      targetPort: 12053
+  selector:
+    run: cerebro-planner
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cerebro-worker
+  labels:
+    run: cerebro-worker
+{{ if .Values.service.annotations }}
+  annotations:
+{{- .Values.service.annotations | toYaml  | nindent 4}} 
+{{ end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    # Note: services rely on the name of this port. Do not change it without changing
+    # all references to it.
+    - name: worker
+      port: 13050
+      protocol: "TCP"
+      targetPort: 13050
+  selector:
+    run: cerebro-worker
+---
+# Service to expose worker metrics and debug information
+# This is defined separately from cerebro-worker so we can set externalTrafficPolicy to Local
+apiVersion: v1
+kind: Service
+metadata:
+  name: cerebro-worker-debug
+  labels:
+    # Note: Worker service monitor relies on this label. Do not change it without changing
+    # the service monitor.
+    run: cerebro-worker-debug
+spec:
+  type: NodePort
+  ports:
+    # Note: services rely on the name of this port. Do not change it without changing
+    # all references to it.
+    - name: debug
+      port: 11050
+      protocol: "TCP"
+      targetPort: 11050
+  # Set externalTrafficPolicy to Local to avoid any load balancing
+  # We want to get the response from the same node to which we sent the request
+  externalTrafficPolicy: Local
+  selector:
+    run: cerebro-worker
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cdas-rest-server
+  labels:
+    run: cdas-rest-server
+{{ if .Values.service.annotations }}
+  annotations:
+{{- .Values.service.annotations | toYaml  | nindent 4}} 
+{{ end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    # Note: services rely on the name of this port. Do not change it without changing
+    # all references to it.
+    - name: api
+      port: 5000
+      protocol: "TCP"
+      targetPort: 5000
+    # Note: services rely on the name of this port. Do not change it without changing
+    # all references to it.
+    - name: webui
+      port: 8083
+      protocol: "TCP"
+      targetPort: 8083
+  selector:
+    run: cdas-rest-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: presto-coordinator
+  labels:
+    run: presto-coordinator
+{{ if .Values.service.annotations }}
+  annotations:
+{{- .Values.service.annotations | toYaml  | nindent 4}} 
+{{ end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    presto: coordinator
+  ports:
+    # Note: services rely on the name of this port. Do not change it without changing
+    # all references to it.
+    - name: api
+      port: 14050
+      targetPort: 8049

@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cdas-rest-server
+  labels:
+    run: cdas-rest-server
+spec:
+  selector:
+    matchLabels:
+      run: cdas-rest-server
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/02-config.yaml") . | sha256sum }}      
+        configHash: ""
+        {{ if .Values.pod.annotations }}
+        {{- .Values.pod.annotations | toYaml  | nindent 8}} 
+        {{ end }}        
+      labels:
+        run: cdas-rest-server
+    spec:
+      serviceAccountName: {{ .Values.serviceaccount.name | default "default" }}
+      automountServiceAccountToken: true
+      containers:
+      - image: {{ .Values.image.repository }}/cdas-rest-server:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args: []
+        name: rest-server
+        ports:
+        # Note: services rely on the name of this port. Do not change it without changing
+        # all references to it.
+        - containerPort: 5000
+          protocol: TCP
+          name: "api"
+        # Note: services rely on the name of this port. Do not change it without changing
+        # all references to it.
+        - containerPort: 5005
+          protocol: TCP
+          name: "log-server"
+        # Note: services rely on the name of this port. Do not change it without changing
+        # all references to it.
+        - containerPort: 8083
+          protocol: TCP
+          name: "webui"
+        livenessProbe:
+          exec:
+            command:
+              - /opt/restserver-healthcheck.sh
+          initialDelaySeconds: 60
+          periodSeconds: 60
+        readinessProbe:
+          exec:
+            command:
+              - /opt/restserver-healthcheck.sh
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "500Mi"
+          limits:
+            memory: "6Gi"
+        envFrom:
+        - configMapRef:
+            name: default-odas-config
+        - configMapRef:
+            name: odas-config
+        env:
+        - name: RESTART_VERSION_0
+          value: "1"
+        - name: WATCHER_PREFIX
+          value: "cdas-rest-server"
+        volumeMounts:
+        - mountPath: /etc/secrets
+          name: secrets
+          readOnly: true
+        - mountPath: /var/lib/okera
+          name: okera-lib
+        - mountPath: /var/log/okera
+          name: okera-log
+{{ if .Values.extraVolumeMounts }}
+{{- .Values.extraVolumeMounts | toYaml  | nindent 8}} 
+{{ end }}          
+      volumes:
+      - name: secrets
+        secret:
+          defaultMode: 420
+          secretName: secrets
+      - name: okera-lib
+        hostPath:
+          path: /var/lib/okera
+          type: DirectoryOrCreate
+      - name: okera-log
+        hostPath:
+          path: /var/log/okera
+          type: DirectoryOrCreate
+{{ if .Values.extraVolumes }}
+{{- .Values.extraVolumes | toYaml  | nindent 6}} 
+{{ end }}          
+      terminationGracePeriodSeconds: 5
+{{- if .Values.nodeSelector }}
+      nodeSelector: {{- .Values.nodeSelector | toYaml | nindent 8 }}
+{{- end }}

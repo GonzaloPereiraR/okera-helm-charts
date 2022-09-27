@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cerebro-worker
+  labels:
+    run: cerebro-worker
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      run: cerebro-worker
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/02-config.yaml") . | sha256sum }}      
+        configHash: ""
+        {{ if .Values.pod.annotations }}
+        {{- .Values.pod.annotations | toYaml  | nindent 8}} 
+        {{ end }}        
+      labels:
+        run: cerebro-worker
+    spec:
+      serviceAccountName: {{ .Values.serviceaccount.name | default "default" }}
+      automountServiceAccountToken: true
+      containers:
+      - image: {{ .Values.image.repository }}/cdas:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: worker-node
+        ports:
+        # Note: services rely on the name of this port. Do not change it without changing
+        # all references to it.
+        - containerPort: 5005
+          protocol: TCP
+          name: "log-server"
+        # Note: services rely on the name of this port. Do not change it without changing
+        # all references to it.
+        - containerPort: 11050
+          protocol: TCP
+          name: "webui"
+        # Note: services rely on the name of this port. Do not change it without changing
+        # all references to it.
+        - containerPort: 13050
+          protocol: TCP
+          name: "worker"
+        livenessProbe:
+          exec:
+            command:
+              - /opt/healthcheck.sh
+          initialDelaySeconds: 60
+          periodSeconds: 60
+        readinessProbe:
+          exec:
+            command:
+              - /opt/execute-ddl.sh
+              - --healthcheck_worker
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        envFrom:
+        - configMapRef:
+            name: default-odas-config
+        - configMapRef:
+            name: odas-config
+        env:
+        - name: RESTART_VERSION_0
+          value: "1"
+        - name: WORKER_ONLY
+          value: "1"
+        - name: WATCHER_PREFIX
+          value: "worker"
+        volumeMounts:
+        - mountPath: /etc/secrets
+          name: secrets
+          readOnly: true
+        - mountPath: /var/lib/okera
+          name: okera-lib
+        - mountPath: /var/log/okera
+          name: okera-log
+{{ if .Values.extraVolumeMounts }}
+{{- .Values.extraVolumeMounts | toYaml  | nindent 8}} 
+{{ end }}          
+      volumes:
+      - name: secrets
+        secret:
+          defaultMode: 420
+          secretName: secrets
+      - name: okera-lib
+        hostPath:
+          path: /var/lib/okera
+          type: DirectoryOrCreate
+      - name: okera-log
+        hostPath:
+          path: /var/log/okera
+          type: DirectoryOrCreate
+{{ if .Values.extraVolumes }}
+{{- .Values.extraVolumes | toYaml  | nindent 6}} 
+{{ end }}          
+      terminationGracePeriodSeconds: 5
+      securityContext:
+        fsGroup: 1000
+{{- if .Values.nodeSelector }}
+      nodeSelector: {{- .Values.nodeSelector | toYaml | nindent 8 }}
+{{- end }}

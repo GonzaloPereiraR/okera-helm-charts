@@ -1,0 +1,54 @@
+# These are the default configurations that creates an insecure cluster
+# out of the box. No changes should be necessary to these configs to
+# get the cluster to start up.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: default-odas-config
+data:
+  # Defaults that every build needs. These will be overridden by any values set in
+  # the `odas-config` ConfigMap
+  CACHE_QUERIES: /opt/cache_queries.json
+  CATALOG_TYPE: "hms"
+  ENABLE_HMS_2_SCHEMA: "false"
+  ENVIRONMENT: aws
+  KUBERNETES: "1"
+  NO_ZK: "1"
+  OKERA_NO_AGENT: "1"
+  WATCHER_LOG_PARTITIONED_UPLOADS: "true"
+  WATCHER_AUDIT_LOG_DST_DIR: /var/log/okera/audit
+  PRESIDIO_ENABLED: "true"
+  CACHE_MAKER_ENABLED: "false"
+  OKERA_PRESTO_PLANNER_RPC_MS: "300000"
+  OKERA_PRESTO_WORKER_RPC_MS: "1800000"
+  OKERA_KUBERNETES_MEMBERSHIP: "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: odas-config
+data:
+{{- .Values.common.configs | toYaml | nindent 2 }}
+{{ if .Values.ssl.enabled }}
+  {{- "SSL_CERTIFICATE_FILE: /etc/secrets/SSL_CERTIFICATE_FILE" | nindent 2 }}
+  {{- "SSL_KEY_FILE: /etc/secrets/SSL_KEY_FILE" | nindent 2 }}
+  {{ "RS_SSL_ENABLED: \"true\" " | nindent 2 }}
+  {{ "RS_ARGS: --ssl_enable=true --ssl_private_key=/etc/secrets/SSL_KEY_FILE --ssl_server_certificate=/etc/secrets/SSL_CERTIFICATE_FILE" | nindent 2 }}
+  {{ if .Values.ssl.configs }}
+  {{- .Values.ssl.configs | toYaml | nindent 2 }}
+  {{ end }}
+{{ end }}
+{{ if .Values.jwt.enabled }}
+  {{- "JWT_PUBLIC_KEY: /etc/secrets/JWT_PUBLIC_KEY" | nindent 2 }}
+  {{- "JWT_PRIVATE_KEY: /etc/secrets/JWT_PRIVATE_KEY" | nindent 2 }}
+  {{ print "JWT_ALGORITHM: " .Values.jwt.configs.JWT_ALGORITHM | nindent 2 }}
+{{ end }}
+{{ if .Values.ldap.enabled }}
+  {{- "GROUP_RESOLVER_LDAP_PASSWORD: /etc/secrets/GROUP_RESOLVER_LDAP_PASSWORD" | nindent 2 }}
+  {{- "LDAP_USER_QUERY_SERVICE_PASSWORD: /etc/secrets/LDAP_USER_QUERY_SERVICE_PASSWORD" | nindent 2 }}
+  {{- .Values.ldap.configs | toYaml | nindent 2 }}
+{{ end }}
+{{ if .Values.db.enabled }}
+  {{- .Values.db.configs | toYaml | nindent 2 }}
+  {{- "CATALOG_DB_PASSWORD: /etc/secrets/CATALOG_DB_PASSWORD" | nindent 2 }}
+{{ end }}
